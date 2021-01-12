@@ -213,10 +213,10 @@ class GANLoss(nn.Module):
     def __call__(self, y_pred_fake, y_pred, target_is_real):
         target_tensor = self.get_target_tensor(y_pred_fake, target_is_real)
         if target_is_real:
-            errD = (torch.mean((y_pred - torch.mean(y_pred_fake) - target_tensor) ** 2) + torch.mean(
-                (y_pred_fake - torch.mean(y_pred) + target_tensor) ** 2)) / 2
+            errD = (torch.mean((y_pred - torch.mean(y_pred_fake.to(device=y_pred.device)) - target_tensor.to(device=y_pred.device)) ** 2) + torch.mean(
+                (y_pred_fake.to(device=y_pred.device) - torch.mean(y_pred) + target_tensor.to(device=y_pred.device)) ** 2)) / 2
             return errD
         else:
-            errG = (torch.mean((y_pred - torch.mean(y_pred_fake) + target_tensor) ** 2) + torch.mean(
-                (y_pred_fake - torch.mean(y_pred) - target_tensor) ** 2)) / 2
+            errG = (torch.mean((y_pred - torch.mean(y_pred_fake.to(device=y_pred.device)) + target_tensor.to(device=y_pred.device)) ** 2) + torch.mean(
+                (y_pred_fake.to(device=y_pred.device) - torch.mean(y_pred) - target_tensor.to(device=y_pred.device)) ** 2)) / 2
             return errG

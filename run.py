@@ -2,6 +2,7 @@ import argparse
 
 import torch
 import torch.nn.functional as F
+import torchvision
 
 # import class()
 from model.generator import Generator
@@ -19,24 +20,24 @@ data_loader = Loader()
 # init parser
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--device", type=str, deafult="cuda:0", help="Device name")
+parser.add_argument("--device", type=str, default="cuda:0", help="Device name")
 
 args = parser.parse_args()
 
 
 # init models
 device = torch.device(args.device)
-model_G = Generator()
-model_D = Discriminator()
+model_G = Generator().to(device)
+model_D = Discriminator().to(device)
 
 
 # init optimizer
-optimizer_G = torch.optim.Adam(model_G.parameters(), lr=0.001)#, weight_decay=0.0005)
-optimizer_D = torch.optim.Adam(model_D.parameters(), lr=0.001)#, weight_decay=0.0005)
+optimizer_G = torch.optim.Adam(model_G.parameters(), lr=0.0002)#, weight_decay=0.0005)
+optimizer_D = torch.optim.Adam(model_D.parameters(), lr=0.0002)#, weight_decay=0.0005)
 
 
 # init losses:
-criterion_GAN = GANLoss()
+criterion_GAN = GANLoss().to(device)
 
 def criterion_L1(x, y, interpolate=False):
     if interpolate == True: 
@@ -48,10 +49,10 @@ def criterion_L2(x, y, interpolate=False):
         y = F.interpolate(y, size=(32, 32), mode="bilinear")
     return F.mse_loss(x, y)
 
-criterion_Pe = PerceptualLoss()
-criterion_Style = StyleLoss()
+criterion_Pe = PerceptualLoss().to(device)
+criterion_Style = StyleLoss().to(device)
 
-def criterion_G(out, out_tex, out_str, gt, str, pred_fake_G, pred_real_G):
+def criterion_G(out, out_tex, out_str, gt, str_, pred_fake_G, pred_real_G):
     loss_re = criterion_L1(out, gt, interpolate=False) * 1
     loss_pe = criterion_Pe(out, gt) * 0.1
     loss_style = criterion_Style(out, gt) * 250
@@ -66,6 +67,7 @@ def train():
     iter = 0
     for epoch in range(100):
         for i, data in enumerate(data_loader):
+            iter += 1
             img, gt, str_, mask = data
             img, gt, str_, mask = img.to(device), gt.to(device), str_.to(device), mask.to(device)
             outs = model_G(img, mask)
@@ -81,10 +83,16 @@ def train():
             optimizer_G.zero_grad()
             pred_fake_G = model_D(out)
             pred_real_G = model_D(gt)
-            loss_G = criterion_G(out, out_tex, out_str, gt, str, pred_fake_G, pred_real_G)
+            loss_G = criterion_G(out, out_tex, out_str, gt, str_, pred_fake_G, pred_real_G)
             loss_G.backward()
             optimizer_G.step()
             print(epoch, iter, loss_G.item(), loss_D.item())
+            image_out = torch.cat([img, out, gt], 0)
+            grid = torchvision.utils.make_grid(image_out)
+            if iter % 10 == 0:
+                torchvision.transforms.functional.to_pil_image(grid).save('./saveimg/000.png')
+            if iter % 100 == 0:
+                torchvision.transforms.functional.to_pil_image(grid).save('./saveimg/img%i.png' % iter)
 
 
 

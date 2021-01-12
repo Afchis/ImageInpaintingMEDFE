@@ -189,7 +189,7 @@ class BPA(nn.Module):
     def __init__(self, in_channels=512, ratio=16):
         super(BPA, self).__init__()
         self.se_layer = _SqueezeExtractionLayer(in_channels=in_channels, ratio=ratio)
-        gus = _gussin(1.5).to(device=self.se_layer.device)
+        gus = _gussin(1.5)
         self.gus = torch.unsqueeze(gus, 1).double()
         self.convrelu = nn.Sequential(
             nn.Conv2d(2*in_channels, in_channels, kernel_size=1, stride=1, padding=0, bias=False),
@@ -203,7 +203,7 @@ class BPA(nn.Module):
         x = self.se_layer(x)
         # spatial step:
         x_spatial = x.expand(h*w, c, h, w)
-        gus = self.gus.float()
+        gus = self.gus.float().to(device=x_spatial.device)
         x_spatial = (x_spatial * gus).sum(-1).sum(-1).permute(1, 0).reshape(c, h, w)
         # range step:
         x_range = self.sigmoid(x)

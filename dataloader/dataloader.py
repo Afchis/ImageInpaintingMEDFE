@@ -1,4 +1,4 @@
-import os
+import os, random
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -10,7 +10,7 @@ from PIL import Image
 class DataTrain(Dataset):
 	def __init__(self):
 		super().__init__()
-		self.data_path = "./dataloader/data/"
+		self.data_path = "./dataloader/data/celebA/"
 		self.img_names = sorted(os.listdir(self.data_path + "gt/"))
 		self.str_names = sorted(os.listdir(self.data_path + "st/"))
 		self.msk_names = sorted(os.listdir(self.data_path + "mask/"))
@@ -25,8 +25,8 @@ class DataTrain(Dataset):
 	def __getitem__(self, idx):
 		gt = self.img2tensor(Image.open(self.data_path + "gt/" + self.img_names[idx]))
 		str_ = self.img2tensor(Image.open(self.data_path + "st/" + self.str_names[idx]))
-		mask = self.img2tensor(Image.open(self.data_path + "mask/" + self.msk_names[idx])) # do random!!!!
-		img = gt * mask
+		mask = self.img2tensor(Image.open(self.data_path + "mask/" + random.choice(self.msk_names))) # do random!!!!
+		img = gt * mask.eq(0.)
 		return img, gt, str_, mask
 		
 
