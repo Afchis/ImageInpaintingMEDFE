@@ -44,7 +44,7 @@ class ConvReluBlock(nn.Module):
         super(ConvReluBlock, self).__init__()
         self.convrelu = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding),
-            nn.BatchNorm2d(out_channels),
+            nn.InstanceNorm2d(out_channels),
             nn.ReLU()
         )
 
@@ -56,11 +56,13 @@ class ResBlock(nn.Module):
     def __init__(self, in_channels, kernel_size=3, stride=1, padding=1):
         super(ResBlock, self).__init__()
         self.convrelu = nn.Sequential(
-            nn.Conv2d(in_channels, in_channels, kernel_size=kernel_size, stride=stride, padding=padding),
-            nn.BatchNorm2d(in_channels),
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(in_channels, in_channels, kernel_size=kernel_size, stride=stride, padding=0),
+            nn.InstanceNorm2d(in_channels),
             nn.ReLU(),
-            nn.Conv2d(in_channels, in_channels, kernel_size=kernel_size, stride=stride, padding=padding),
-            nn.BatchNorm2d(in_channels),
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(in_channels, in_channels, kernel_size=kernel_size, stride=stride, padding=0),
+            nn.InstanceNorm2d(in_channels),
             nn.ReLU()
         )
 
@@ -73,9 +75,10 @@ class _PartialConv_(nn.Module):
         super(_PartialConv_, self).__init__()
         self.feat_conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=kernel_size//2)
         self.mask_conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=kernel_size//2)
+        torch.nn.init.constant_(self.mask_conv.weight, 1.0)
         for param in self.mask_conv.parameters():
             param.requires_grad = False
-        self.bn = nn.BatchNorm2d(out_channels)
+        self.bn = nn.InstanceNorm2d(out_channels)
         self.relu = nn.ReLU()
 
     def forward(self, input):
@@ -105,20 +108,20 @@ class MultuScaleFilling(nn.Module):
             ch_list = [hid_ch, 2*hid_ch, 4*hid_ch]
             self.conv_f1 = nn.Sequential(
                 nn.Conv2d(ch_list[0], 128, kernel_size=3, stride=2, padding=1),
-                nn.BatchNorm2d(128),
+                nn.InstanceNorm2d(128),
                 nn.ReLU(),
                 nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),
-                nn.BatchNorm2d(256),
+                nn.InstanceNorm2d(256),
                 nn.ReLU()
             )
             self.conv_f2 = nn.Sequential(
                 nn.Conv2d(ch_list[1], 256, kernel_size=3, stride=2, padding=1),
-                nn.BatchNorm2d(256),
+                nn.InstanceNorm2d(256),
                 nn.ReLU()
             )
             self.conv_f3 = nn.Sequential(
                 nn.Conv2d(ch_list[2], 256, kernel_size=1, stride=1, padding=0),
-                nn.BatchNorm2d(256),
+                nn.InstanceNorm2d(256),
                 nn.ReLU()
             )
         elif mode == "structures":
@@ -126,24 +129,24 @@ class MultuScaleFilling(nn.Module):
             self.conv_f1 = nn.Sequential(
                 nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
                 nn.Conv2d(ch_list[0], 256, kernel_size=1, stride=1, padding=0),
-                nn.BatchNorm2d(256),
+                nn.InstanceNorm2d(256),
                 nn.ReLU()
             )
             self.conv_f2 = nn.Sequential(
                 nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True),
                 nn.Conv2d(ch_list[0], 256, kernel_size=1, stride=1, padding=0),
-                nn.BatchNorm2d(256),
+                nn.InstanceNorm2d(256),
                 nn.ReLU()
             )
             self.conv_f3 = nn.Sequential(
                 nn.Upsample(scale_factor=8, mode='bilinear', align_corners=True),
                 nn.Conv2d(ch_list[0], 256, kernel_size=1, stride=1, padding=0),
-                nn.BatchNorm2d(256),
+                nn.InstanceNorm2d(256),
                 nn.ReLU()
             )
         self.convrelu = nn.Sequential(
             nn.Conv2d(768, 256, kernel_size=1, stride=1, padding=0),
-            nn.BatchNorm2d(256),
+            nn.InstanceNorm2d(256),
             nn.ReLU()
         )
         sequence_3 = []
@@ -193,7 +196,7 @@ class BPA(nn.Module):
         self.gus = torch.unsqueeze(gus, 1).double()
         self.convrelu = nn.Sequential(
             nn.Conv2d(2*in_channels, in_channels, kernel_size=1, stride=1, padding=0, bias=False),
-            nn.BatchNorm2d(in_channels),
+            nn.InstanceNorm2d(in_channels),
             nn.ReLU()
         )
         self.sigmoid = nn.Sigmoid()
@@ -223,43 +226,43 @@ class PreDecoder(nn.Module):
         self.up_f2 = nn.Sequential(
             nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True),
             nn.Conv2d(512, hid_ch, kernel_size=1, stride=1, padding=0),
-            nn.BatchNorm2d(hid_ch),
-            nn.ReLU()
+            nn.InstanceNorm2d(hid_ch),
+            nn.LeakyReLU(negative_slope=0.2)
         )
         self.up_f4 = nn.Sequential(
             nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
             nn.Conv2d(512, 2*hid_ch, kernel_size=1, stride=1, padding=0),
-            nn.BatchNorm2d(2*hid_ch),
-            nn.ReLU()
+            nn.InstanceNorm2d(2*hid_ch),
+            nn.LeakyReLU(negative_slope=0.2)
         )
         self.up_f8 = nn.Sequential(
             nn.Conv2d(512, 4*hid_ch, kernel_size=1, stride=1, padding=0),
-            nn.BatchNorm2d(4*hid_ch),
-            nn.ReLU()
+            nn.InstanceNorm2d(4*hid_ch),
+            nn.LeakyReLU(negative_slope=0.2)
         )
         self.up_f16 = nn.Sequential(
             nn.Conv2d(512, 8*hid_ch, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(8*hid_ch),
-            nn.ReLU()
+            nn.InstanceNorm2d(8*hid_ch),
+            nn.LeakyReLU(negative_slope=0.2)
         )
         self.up_f32 = nn.Sequential(
             nn.Conv2d(512, 8*hid_ch, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(8*hid_ch),
-            nn.ReLU(),
+            nn.InstanceNorm2d(8*hid_ch),
+            nn.LeakyReLU(negative_slope=0.2),
             nn.Conv2d(8*hid_ch, 8*hid_ch, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(8*hid_ch),
-            nn.ReLU()
+            nn.InstanceNorm2d(8*hid_ch),
+            nn.LeakyReLU(negative_slope=0.2)
         )
         self.up_f64 = nn.Sequential(
             nn.Conv2d(512, 8*hid_ch, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(8*hid_ch),
-            nn.ReLU(),
+            nn.InstanceNorm2d(8*hid_ch),
+            nn.LeakyReLU(negative_slope=0.2),
             nn.Conv2d(8*hid_ch, 8*hid_ch, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(8*hid_ch),
-            nn.ReLU(),
+            nn.InstanceNorm2d(8*hid_ch),
+            nn.LeakyReLU(negative_slope=0.2),
             nn.Conv2d(8*hid_ch, 8*hid_ch, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(8*hid_ch),
-            nn.ReLU(),
+            nn.InstanceNorm2d(8*hid_ch),
+            nn.LeakyReLU(negative_slope=0.2),
         )
 
     def forward(self, feat_2, feat_4, feat_8, feat_16, feat_32, feat_64, feat_bpa):
@@ -273,17 +276,21 @@ class PreDecoder(nn.Module):
 
 
 class UpBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, scale_factor=2):
+    def __init__(self, in_channels, out_channels, scale_factor=2, final=False):
         super(UpBlock, self).__init__()
         self.upconvrelu = nn.Sequential(
             nn.Upsample(scale_factor=scale_factor, mode='bilinear', align_corners=True),
             nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(out_channels),
             nn.ReLU()
         )
+        if final == True:
+            self.upconvrelu = nn.Sequential(
+                nn.Upsample(scale_factor=scale_factor, mode='bilinear', align_corners=True),
+                nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
+                nn.Sigmoid(),
+            )
+
 
     def forward(self, x):
         return self.upconvrelu(x)

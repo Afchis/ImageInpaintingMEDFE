@@ -35,21 +35,15 @@ class Generator(nn.Module):
         self.up4 = UpBlock(in_channels=16*hid_ch, out_channels=4*hid_ch, scale_factor=2)
         self.up3 = UpBlock(in_channels=8*hid_ch, out_channels=2*hid_ch, scale_factor=2)
         self.up2 = UpBlock(in_channels=4*hid_ch, out_channels=hid_ch, scale_factor=2)
-        self.up1 = UpBlock(in_channels=2*hid_ch, out_channels=3, scale_factor=2)
+        self.up1 = UpBlock(in_channels=2*hid_ch, out_channels=3, scale_factor=2, final=True)
         # for train:
         self.textures_out = nn.Sequential(
-            nn.Conv2d(256, 64, kernel_size=1, stride=1, padding=0),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.Conv2d(64, 3, kernel_size=1, stride=1, padding=0),
-            nn.ReLU()
+            nn.Conv2d(256, 3, kernel_size=1, stride=1, padding=0),
+            nn.Sigmoid()
         )
         self.structures_out = nn.Sequential(
-            nn.Conv2d(256, 64, kernel_size=1, stride=1, padding=0),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.Conv2d(64, 3, kernel_size=1, stride=1, padding=0),
-            nn.ReLU()
+            nn.Conv2d(256, 3, kernel_size=1, stride=1, padding=0),
+            nn.Sigmoid()
         )
 
     def forward(self, img, mask):

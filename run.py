@@ -30,6 +30,13 @@ device = torch.device(args.device)
 model_G = Generator().to(device)
 model_D = Discriminator().to(device)
 
+def weights_init(model):
+    if isinstance(model, torch.nn.Conv2d):
+        torch.nn.init.xavier_uniform(model.weight)
+
+with torch.no_grad():
+    model_G.apply(weights_init)
+
 
 # init optimizer
 optimizer_G = torch.optim.Adam(model_G.parameters(), lr=0.0002)#, weight_decay=0.0005)
@@ -59,7 +66,7 @@ def criterion_G(out, out_tex, out_str, gt, str_, pred_fake_G, pred_real_G):
     loss_GAN = criterion_GAN(pred_fake_G, pred_real_G, False) * 0.2
     loss_tex = criterion_L1(out_tex, gt, interpolate=True) * 1 
     loss_str = criterion_L1(out_str, str_, interpolate=True) * 1
-    return loss_re + loss_pe + loss_style + loss_tex + loss_str + loss_GAN
+    return loss_re + loss_pe + loss_style + loss_GAN # loss_tex + loss_str + 
 
 
 # init train:
@@ -89,10 +96,13 @@ def train():
             print(epoch, iter, loss_G.item(), loss_D.item())
             image_out = torch.cat([img, out, gt], 0)
             grid = torchvision.utils.make_grid(image_out)
-            if iter % 10 == 0:
-                torchvision.transforms.functional.to_pil_image(grid).save('./saveimg/000.png')
-            if iter % 100 == 0:
-                torchvision.transforms.functional.to_pil_image(grid).save('./saveimg/img%i.png' % iter)
+            if iter % 25 == 0:
+                torchvision.transforms.functional.to_pil_image(grid).save('./saveimg4/000.png')
+                st_out = torch.cat([out_tex, out_str], 0)
+                st_out = torchvision.utils.make_grid(st_out)
+                torchvision.transforms.functional.to_pil_image(st_out).save('./saveimg4/0.png')
+            if iter % 500 == 0:
+                torchvision.transforms.functional.to_pil_image(grid).save('./saveimg4/img%i.png' % iter)
 
 
 
