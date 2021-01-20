@@ -64,9 +64,9 @@ def criterion_G(out, out_tex, out_str, gt, str_, pred_fake_G, pred_real_G):
     loss_pe = criterion_Pe(out, gt) * 0.1
     loss_style = criterion_Style(out, gt) * 250
     loss_GAN = criterion_GAN(pred_fake_G, pred_real_G, False) * 0.2
-    loss_tex = criterion_L1(out_tex, gt, interpolate=True) * 1 
+    loss_tex = criterion_L1(out_tex, gt, interpolate=True) * 5
     loss_str = criterion_L1(out_str, str_, interpolate=True) * 1
-    return loss_re + loss_pe + loss_style + loss_GAN # loss_tex + loss_str + 
+    return loss_re + loss_pe + loss_style + loss_GAN + loss_tex + loss_str
 
 
 # init train:
@@ -100,7 +100,7 @@ def train():
                 torchvision.transforms.functional.to_pil_image(grid).save('./saveimg4/000.png')
                 st_out = torch.cat([out_tex, out_str], 0)
                 st_out = torchvision.utils.make_grid(st_out)
-                torchvision.transforms.functional.to_pil_image(st_out).save('./saveimg4/0.png')
+                torchvision.transforms.functional.to_pil_image(st_out).save('./saveimg4/0__.png')
             if iter % 500 == 0:
                 torchvision.transforms.functional.to_pil_image(grid).save('./saveimg4/img%i.png' % iter)
 
