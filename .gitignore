@@ -1,5 +1,17 @@
 dataloader/data/
 saveimg/
+saveimg2/
+saveimg3/
+saveimg4/
+saveimg5/
+saveimg6/
+saveimg7/
+saveimg8/
+saveimg9/
+saveimg10/
+saveimg11/
+saveimg12/
+saveimg13/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
