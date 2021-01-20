@@ -73,13 +73,11 @@ class ResBlock(nn.Module):
 class _PartialConv_(nn.Module):
     def __init__(self, in_channels=256, out_channels=256, kernel_size=3, stride=1):
         super(_PartialConv_, self).__init__()
-        self.feat_conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=kernel_size//2)
-        self.mask_conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=kernel_size//2)
+        self.feat_conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, groups=1, padding=kernel_size//2)
+        self.mask_conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, groups=1, padding=kernel_size//2)
         torch.nn.init.constant_(self.mask_conv.weight, 1.0)
         for param in self.mask_conv.parameters():
             param.requires_grad = False
-        self.bn = nn.InstanceNorm2d(out_channels)
-        self.relu = nn.ReLU()
 
     def forward(self, input):
         feat, mask = input[0], input[1]
@@ -96,9 +94,22 @@ class _PartialConv_(nn.Module):
         out = out.masked_fill_(mask_zeros, 0.)
         new_mask = torch.ones_like(out)
         new_mask = new_mask.masked_fill_(mask_zeros, 0.)
-        out = self.bn(out)
-        out = self.relu(out)
-        return out, new_mask
+        output = [out, new_mask]
+        return output
+
+
+class _PartialConvActiv_(nn.Module):
+    def __init__(self, in_channels=256, out_channels=256, kernel_size=3, stride=1):
+        super(_PartialConvActiv_, self).__init__()
+        self.part_conv = _PartialConv_(in_channels=256, out_channels=256, kernel_size=3, stride=1)
+        self.bn = nn.InstanceNorm2d(out_channels, affine=True)
+        self.relu = nn.LeakyReLU(negative_slope=0.2)
+
+    def forward(self, input):
+        output = self.part_conv(input)
+        output[0] = self.bn(output[0])
+        output[0] = self.relu(output[0])
+        return output
 
 
 class MultuScaleFilling(nn.Module):
@@ -153,9 +164,9 @@ class MultuScaleFilling(nn.Module):
         sequence_5 = []
         sequence_7 = []
         for _ in range(5):
-            sequence_3 += [_PartialConv_(in_channels=256, out_channels=256, kernel_size=3)]
-            sequence_5 += [_PartialConv_(in_channels=256, out_channels=256, kernel_size=5)]
-            sequence_7 += [_PartialConv_(in_channels=256, out_channels=256, kernel_size=7)]
+            sequence_3 += [_PartialConvActiv_(in_channels=256, out_channels=256, kernel_size=3)]
+            sequence_5 += [_PartialConvActiv_(in_channels=256, out_channels=256, kernel_size=5)]
+            sequence_7 += [_PartialConvActiv_(in_channels=256, out_channels=256, kernel_size=7)]
         self.partial_convs_3 = nn.Sequential(*sequence_3)
         self.partial_convs_5 = nn.Sequential(*sequence_5)
         self.partial_convs_7 = nn.Sequential(*sequence_7)
@@ -163,10 +174,10 @@ class MultuScaleFilling(nn.Module):
     def forward(self, f1, f2, f3, mask):
         x = torch.cat([self.conv_f1(f1), self.conv_f2(f2), self.conv_f3(f3)], dim=1)
         x = self.convrelu(x)
-        pc_3, _ = self.partial_convs_3([x, mask])
-        pc_5, _ = self.partial_convs_5([x, mask])
-        pc_7, _ = self.partial_convs_7([x, mask])
-        out = torch.cat([pc_3, pc_5, pc_7], dim=1)
+        pc_3 = self.partial_convs_3([x, mask])
+        pc_5 = self.partial_convs_5([x, mask])
+        pc_7 = self.partial_convs_7([x, mask])
+        out = torch.cat([pc_3[0], pc_5[0], pc_7[0]], dim=1)
         return out
 
 

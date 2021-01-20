@@ -30,17 +30,17 @@ device = torch.device(args.device)
 model_G = Generator().to(device)
 model_D = Discriminator().to(device)
 
-def weights_init(model):
-    if isinstance(model, torch.nn.Conv2d):
-        torch.nn.init.xavier_uniform(model.weight)
+# def weights_init(model):
+#     if isinstance(model, torch.nn.Conv2d):
+#         torch.nn.init.xavier_uniform(model.weight)
 
-with torch.no_grad():
-    model_G.apply(weights_init)
+# with torch.no_grad():
+#     model_G.apply(weights_init)
 
 
 # init optimizer
-optimizer_G = torch.optim.Adam(model_G.parameters(), lr=0.0002)#, weight_decay=0.0005)
-optimizer_D = torch.optim.Adam(model_D.parameters(), lr=0.0002)#, weight_decay=0.0005)
+optimizer_G = torch.optim.Adam(model_G.parameters(), lr=0.0007)#, weight_decay=0.0005)
+optimizer_D = torch.optim.Adam(model_D.parameters(), lr=0.0007)#, weight_decay=0.0005)
 
 
 # init losses:
@@ -64,7 +64,7 @@ def criterion_G(out, out_tex, out_str, gt, str_, pred_fake_G, pred_real_G):
     loss_pe = criterion_Pe(out, gt) * 0.1
     loss_style = criterion_Style(out, gt) * 250
     loss_GAN = criterion_GAN(pred_fake_G, pred_real_G, False) * 0.2
-    loss_tex = criterion_L1(out_tex, gt, interpolate=True) * 5
+    loss_tex = criterion_L1(out_tex, gt, interpolate=True) * 1
     loss_str = criterion_L1(out_str, str_, interpolate=True) * 1
     return loss_re + loss_pe + loss_style + loss_GAN + loss_tex + loss_str
 
