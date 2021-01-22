@@ -290,17 +290,27 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, scale_factor=2, final=False):
         super(UpBlock, self).__init__()
         self.upconvrelu = nn.Sequential(
-            nn.Upsample(scale_factor=scale_factor, mode='bilinear', align_corners=True),
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU()
+            nn.ReLU(),
+            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(out_channels)
         )
+        # self.upconvrelu = nn.Sequential(
+        #     nn.Upsample(scale_factor=scale_factor, mode='bilinear', align_corners=True),
+        #     nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
+        #     nn.BatchNorm2d(out_channels),
+        #     nn.ReLU()
+        # )
         if final == True:
             self.upconvrelu = nn.Sequential(
-                nn.Upsample(scale_factor=scale_factor, mode='bilinear', align_corners=True),
-                nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
-                nn.Sigmoid(),
+                nn.ReLU(),
+                nn.ConvTranspose2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1),
+                nn.Sigmoid()
             )
+            # self.upconvrelu = nn.Sequential(
+            #     nn.Upsample(scale_factor=scale_factor, mode='bilinear', align_corners=True),
+            #     nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
+            #     nn.Sigmoid(),
+            # )
 
 
     def forward(self, x):

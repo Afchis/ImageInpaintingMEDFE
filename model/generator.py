@@ -48,6 +48,7 @@ class Generator(nn.Module):
 
     def forward(self, img, mask):
         mask = self.maxpool_mask(mask).expand(1, 256, 32, 32)
+        mask = torch.add(torch.neg(mask), 1.)
         # Encoder
         feat_2 = self.down1(img)
         feat_4 = self.down2(self.maxpool(feat_2))

@@ -39,8 +39,8 @@ model_D = Discriminator().to(device)
 
 
 # init optimizer
-optimizer_G = torch.optim.Adam(model_G.parameters(), lr=0.0007)#, weight_decay=0.0005)
-optimizer_D = torch.optim.Adam(model_D.parameters(), lr=0.0007)#, weight_decay=0.0005)
+optimizer_G = torch.optim.Adam(model_G.parameters(), lr=0.0002)#, weight_decay=0.0005)
+optimizer_D = torch.optim.Adam(model_D.parameters(), lr=0.0002)#, weight_decay=0.0005)
 
 
 # init losses:
@@ -56,14 +56,23 @@ def criterion_L2(x, y, interpolate=False):
         y = F.interpolate(y, size=(32, 32), mode="bilinear")
     return F.mse_loss(x, y)
 
+def criterion_GAN2(x, mode=True):
+    trues = torch.ones_like(x).detach()
+    falses = torch.zeros_like(x).detach()
+    if mode == True:
+        return F.mse_loss(x, trues)
+    elif mode == False:
+        return F.mse_loss(x, falses)
+
 criterion_Pe = PerceptualLoss().to(device)
 criterion_Style = StyleLoss().to(device)
 
 def criterion_G(out, out_tex, out_str, gt, str_, pred_fake_G, pred_real_G):
     loss_re = criterion_L1(out, gt, interpolate=False) * 1
-    loss_pe = criterion_Pe(out, gt) * 0.1
+    loss_pe = criterion_Pe(out, gt) * 0.2
     loss_style = criterion_Style(out, gt) * 250
     loss_GAN = criterion_GAN(pred_fake_G, pred_real_G, False) * 0.2
+    # loss_GAN = criterion_GAN2(pred_fake_G, False) * 0.2
     loss_tex = criterion_L1(out_tex, gt, interpolate=True) * 1
     loss_str = criterion_L1(out_str, str_, interpolate=True) * 1
     return loss_re + loss_pe + loss_style + loss_GAN + loss_tex + loss_str
@@ -100,7 +109,7 @@ def train():
                 torchvision.transforms.functional.to_pil_image(grid).save('./saveimg4/000.png')
                 st_out = torch.cat([out_tex, out_str], 0)
                 st_out = torchvision.utils.make_grid(st_out)
-                torchvision.transforms.functional.to_pil_image(st_out).save('./saveimg4/0__.png')
+                torchvision.transforms.functional.to_pil_image(st_out).save('./saveimg4/0.png')
             if iter % 500 == 0:
                 torchvision.transforms.functional.to_pil_image(grid).save('./saveimg4/img%i.png' % iter)
 
